@@ -1,0 +1,9 @@
+about
+    block::header
+
+    h1
+        "About"
+    p
+        "This is good project."
+
+    block::footer

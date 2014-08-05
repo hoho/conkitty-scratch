@@ -1,0 +1,8 @@
+block::header
+    &"header.css"
+
+    header.b-header
+        a[href="/"]
+            "Index"
+        a[href="/about"]
+            "About"

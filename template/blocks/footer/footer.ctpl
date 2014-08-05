@@ -1,0 +1,5 @@
+block::footer
+    &"footer.css"
+
+    footer.b-footer
+        "All rights completely reserved."

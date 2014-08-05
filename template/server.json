@@ -1,0 +1,24 @@
+{
+    "/": {
+        "file": "page.html"
+    },
+    "/favicon.ico": {
+        "file": "favicon.ico"
+    },
+    "/_/": {
+        "dir": "_"
+    },
+    "/api/": {
+        "proxy": {
+            "development": {
+                "url": "https://api:8081"
+            },
+            "testing": {
+                "service": "..."
+            },
+            "production": {
+                "service": "..."
+            }
+        }
+    }
+}

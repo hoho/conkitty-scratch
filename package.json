@@ -1,0 +1,29 @@
+{
+    "name": "conkitty-scratch",
+    "version": "0.0.0",
+    "description": "Sample project",
+    "main": "cscratch.js",
+    "directories": {
+        "bin": "bin"
+    },
+    "bin": {
+        "cscratch": "bin/cscratch"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/hoho/conkitty-scratch.git"
+    },
+    "author": "Marat Abdullin <dakota@brokenpipe.ru>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/hoho/conkitty-scratch/issues"
+    },
+    "dependencies": {
+        "gulp": "~3.8.6",
+        "commander": "~2.3.0",
+        "colors": "~0.6.2"
+    },
+    "devDependencies": {
+        "gulp-eslint": "~0.1.8"
+    }
+}

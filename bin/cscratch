@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+'use strict';
+
+
+var createProject = require('../cscratch'),
+    fs = require('fs'),
+    path = require('path'),
+    program = require('commander');
+
+var packageJSON = path.join(path.dirname(require.resolve('../cscratch')), 'package.json'),
+    config = {};
+
+
+program
+    .version(JSON.parse(fs.readFileSync(packageJSON, {encoding: 'utf8'})).version)
+    .usage('[options] <dest>')
+    .option('-n, --name [project]', 'Project name')
+    .option('-d, --desc [description]', 'Project description')
+    .option('-r, --repo [repository]', 'Git repository link')
+    .option('-a, --author [author]', 'Author name')
+    .parse(process.argv);
+
+
+if (program.args.length !== 1) {
+    program.help();
+}
+
+
+createProject(
+    program.args[0],
+    program.name,
+    program.desc,
+    program.repo,
+    program.author
+);

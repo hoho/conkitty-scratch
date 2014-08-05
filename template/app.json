@@ -1,0 +1,10 @@
+{
+    "title": "Template Project",
+    "dest": "target/www",
+    "libs": {
+        "concat.js": "concat.js",
+        "histery": "histery.js",
+        "conkitty-route": "croute.js",
+        "jquery": "jquery.js"
+    }
+}

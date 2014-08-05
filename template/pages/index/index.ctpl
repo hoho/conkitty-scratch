@@ -1,0 +1,14 @@
+index
+    h1
+        "Hello world"
+
+    form
+        JS
+            $(this).on('submit', function(e) {
+                e.preventDefault();
+                var text = this.elements[0].value;
+                $C.route.set($C.route.get('search').makeURI({text: text}));
+            });
+        input[type="text"][name="text"][value=""]
+        button[type="submit"]
+            "Search"

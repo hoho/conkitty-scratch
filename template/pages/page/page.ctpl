@@ -1,0 +1,6 @@
+page
+    block::header
+
+    div#page__content
+
+    block::footer

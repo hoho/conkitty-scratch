@@ -1,0 +1,16 @@
+search $data $params
+    ul
+        EACH $item $data
+            li
+                ($params.text)
+                $item
+
+
+search__loading
+    h6
+        "Loading..."
+
+
+search__error
+    h6
+        "Error."
