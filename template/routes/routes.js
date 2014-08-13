@@ -1,3 +1,5 @@
+/* global $C */
+/* global $ */
 $C.route
     .add('/', {
         title: 'Index',
@@ -12,7 +14,7 @@ $C.route
                 title: 'Search',
                 parent: '#page__content',
                 data: function() {
-                    var ret = $.Deferred();
+                    var ret = new $.Deferred();
                     setTimeout(function() {
                         var data = [],
                             i;

@@ -1,26 +1,30 @@
 {
     "private": true,
-    "name": "%%%NAME%%%",
+    "name": "<%- name %>",
     "version": "0.0.0",
-    "description": "%%%DESCRIPTION%%%",
-    "repository": {
+    <% if (typeof description === 'string') { %>"description": "<%- description %>",
+    <% } %><% if (typeof repo === 'string') { %>"repository": {
         "type": "git",
-        "url": "%%%REPO%%%"
+        "url": "<%- repo %>"
     },
-    "author": "%%%AUTHOR%%%",
-    "license": "MIT",
+    <% } %><% if (typeof author === 'string') { %>"author": "<%- author %>",
+    <% } %>"license": "(C) Yandex LLC",
     "dependencies": {},
     "devDependencies": {
-        "gulp": "~3.8.6",
+        "gulp": "~3.8.7",
         "gulp-eslint": "~0.1.8",
         "gulp-rename": "~1.2.0",
         "gulp-uglify": "~0.3.1",
         "gulp-conkitty": "~0.5.9",
         "gulp-concat": "~2.3.4",
         "gulp-filter": "~1.0.0",
-        "gulp-replace": "~0.4.0",
         "gulp-autoprefixer": "~0.0.8",
         "gulp-minify-css": "~0.3.7",
+        "gulp-template": "~1.0.0",
+        "gulp-flatten": "~0.0.2",
+        "gulp-util": "~3.0.0",
+        "gulp-subset-process": "~0.0.1",
+        "lodash": "~2.4.1",
         "del": "~0.1.1",
         "devserve": "~0.0.1",
         "histery": "~0.7.3",

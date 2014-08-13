@@ -1,12 +1,12 @@
 {
     "/": {
-        "file": "page.html"
+        "file": "<%= app.page.dest %>"
     },
     "/favicon.ico": {
         "file": "favicon.ico"
     },
-    "/_/": {
-        "dir": "_"
+    "/<%= app.static.web %>/": {
+        "dir": "<%= app.static.dir %>"
     },
     "/api/": {
         "proxy": {
@@ -14,10 +14,10 @@
                 "url": "https://api:8081"
             },
             "testing": {
-                "service": "..."
+                "url": "https://api:8081"
             },
             "production": {
-                "service": "..."
+                "url": "https://api:8081"
             }
         }
     }

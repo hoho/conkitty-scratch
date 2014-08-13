@@ -6,58 +6,29 @@ var eslint = require('gulp-eslint');
 var uglify = require('gulp-uglify');
 var conkitty = require('gulp-conkitty');
 var concat = require('gulp-concat');
-var replace = require('gulp-replace');
 var filter = require('gulp-filter');
 var prefix = require('gulp-autoprefixer');
 var minifyCSS = require('gulp-minify-css');
+var template = require('gulp-template');
+var flatten = require('gulp-flatten');
+var gutil = require('gulp-util');
+var subsetProcess = require('gulp-subset-process');
+var rename = require('gulp-rename');
 
 var del = require('del');
 var fs = require('fs');
 var path = require('path');
+var _ = require('lodash');
+var format = require('util').format;
 
 var devServe = require('devserve');
 var nyanoislands = require('nyanoislands');
 
-
-
-var config = (function() {
-    var server = JSON.parse(fs.readFileSync('server.json', {encoding: 'utf8'})),
-        app = JSON.parse(fs.readFileSync('app.json', {encoding: 'utf8'})),
-        dest = path.resolve(app.dest || 'target/www'),
-        build = process.env.MAVEN_VERSION || process.env.BUILD_VERSION || '0',
-        lib,
-        libFiles,
-        i,
-        libs = [];
-
-    for (lib in app.libs) {
-        if ((libFiles = app.libs[lib])) {
-            lib = path.dirname(require.resolve(lib));
-
-            if (typeof libFiles === 'string') {
-                libFiles = [libFiles];
-            }
-
-            for (i = 0; i < libFiles.length; i++) {
-                libs.push(path.join(lib, libFiles[i]));
-            }
-        }
-    }
-
-    return {
-        title: app.title,
-        mode: process.env.MODE || 'development',
-        build: build,
-        dest: dest,
-        static: path.join(dest, '_', build),
-        libs: libs,
-        server: server
-    };
-})();
+var CONFIG;
 
 
 gulp.task('clean', function(cb) {
-    del([config.dest], cb);
+    del([CONFIG.dest], cb);
 });
 
 
@@ -79,81 +50,172 @@ gulp.task('eslint', function() {
 });
 
 
-gulp.task('libs', function() {
-    if (config.libs.length) {
-        return gulp.src(config.libs)
-            .pipe(filter('**/*.js'))
-            .pipe(concat('libs.js'))
-            .pipe(gulp.dest(config.static));
-    }
-});
-
-
 gulp.task('app', function() {
     var cssFilter = filter('**/*.css'),
-        jsFilter = filter(['**/*.js', '!tpl.js']);
+        jsFilter = filter('**/*.js'),
+        tplFilter = filter('**/*.tpl.*');
 
-    return gulp.src(['pages/**/*.ctpl', 'blocks/**/*.ctpl'])
-        .pipe(conkitty({
+    var appStylesheets = [],
+        appScripts = [];
+
+    return gulp.src(CONFIG.dependencies)
+        .pipe(subsetProcess('**/*.ctpl', function(src) { return src.pipe(conkitty({
             common: {file: 'common.js', 'concat.js': false},
             templates: 'tpl.js',
             deps: true,
             libs: {nyanoislands: nyanoislands}
-        }))
+        })); }))
+        .pipe(tplFilter)
+        .pipe(template(CONFIG))
+        .pipe(tplFilter.restore())
         .pipe(jsFilter)
-        .pipe(concat('deps.js'))
+        .pipe(CONFIG.mode === 'production' ? concat('app.js') : gutil.noop())
         .pipe(jsFilter.restore())
         .pipe(cssFilter)
-        .pipe(concat('deps.css'))
+        .pipe(CONFIG.mode === 'production' ? concat('app.css') : gutil.noop())
         .pipe(prefix('last 1 version', '> 1%'))
         .pipe(cssFilter.restore())
-        .pipe(gulp.dest(config.static));
+        .pipe(flatten())
+        .pipe(gulp.dest(CONFIG.physicalStatic))
+        .on('data', function(file) {
+            file = path.basename(file.path);
+            var ext = path.extname(file);
+            if (ext === '.css') { appStylesheets.push(file); }
+            if (ext === '.js') { appScripts.push(file); }
+        })
+        .on('end', function() {
+            CONFIG.appStylesheets = appStylesheets;
+            CONFIG.appScripts = appScripts;
+
+            gulp.src(CONFIG.app.page.src)
+                .pipe(template(CONFIG))
+                .pipe(rename(CONFIG.app.page.dest))
+                .pipe(gulp.dest(CONFIG.dest));
+        });
 });
 
 
-gulp.task('routes', function() {
-    return gulp.src('routes/routes.js')
-        .pipe(gulp.dest(config.static));
-});
-
-
-gulp.task('page', function() {
-    return gulp.src(['pages/page.html'])
-        .pipe(replace(/%%%TITLE%%%/g, config.title))
-        .pipe(replace(/%%%BUILD_VERSION%%%/g, config.build))
-        .pipe(gulp.dest(config.dest));
-});
-
-
-gulp.task('build', ['libs', 'app', 'page', 'routes']);
-
-
-gulp.task('uglify', ['build'], function() {
-    if (config.mode === 'prod') {
-        gulp.src(config.dest + '/**/*.js')
+gulp.task('uglify', ['app'], function() {
+    if (CONFIG.mode === 'production') {
+        gulp.src(CONFIG.dest + '/**/*.js')
             .pipe(uglify({preserveComments: 'some'}))
-            .pipe(gulp.dest(config.dest));
+            .pipe(gulp.dest(CONFIG.dest));
 
-        gulp.src(config.dest + '/**/*.css')
+        gulp.src(CONFIG.dest + '/**/*.css')
             .pipe(minifyCSS())
-            .pipe(gulp.dest(config.dest));
+            .pipe(gulp.dest(CONFIG.dest));
     }
 });
 
 
-gulp.task('serve', ['build'], function() {
-    gulp.watch([
-        'blocks/**/*.js',
-        'blocks/**/*.css',
-        'blocks/**/*.ctpl',
-        'pages/**/*.js',
-        'pages/**/*.css',
-        'pages/**/*.ctpl'
-    ], ['app']);
-    gulp.watch('pages/page.html', ['page']);
-    gulp.watch('routes/routes.js', ['routes']);
-    devServe(config.server, config.dest);
+gulp.task('server.json', ['app'], function() {
+    fs.writeFileSync(path.join(CONFIG.dest, 'server.json'), JSON.stringify(CONFIG.server, undefined, 4));
 });
 
 
-gulp.task('default', ['eslint', 'build', 'uglify']);
+gulp.task('serve', ['app'], function() {
+    gulp.watch([].concat(CONFIG.dependencies), ['app']);
+    devServe(CONFIG.server, CONFIG.dest);
+});
+
+
+gulp.task('default', ['eslint', 'app', 'uglify', 'server.json']);
+
+
+CONFIG = (function() {
+    var server = JSON.parse(fs.readFileSync('server.json', {encoding: 'utf8'})),
+        app = JSON.parse(fs.readFileSync('app.json', {encoding: 'utf8'})),
+        dest = path.resolve(app.dest || 'target/www'),
+        build = process.env.MAVEN_VERSION || process.env.BUILD_VERSION || '0',
+        dep,
+        files,
+        i,
+        dependencies = [],
+        externalScripts = [],
+        externalStylesheets = [];
+
+    for (i = 0; i < app.dependencies.length; i++) {
+        /* eslint no-loop-func: 0 */
+        dep = app.dependencies[i];
+        files = dep.files;
+        if (typeof files === 'string') { files = [files]; }
+        if (!(files instanceof Array)) {
+            throw new Error(format('Incorrect dependecy files (%s)', i));
+        }
+
+        switch (dep.type) {
+            case 'module':
+                if (typeof dep.name !== 'string' || !dep.name) {
+                    throw new Error(format('Incorrect dependecy name (%s)', i));
+                }
+                dep = path.dirname(require.resolve(dep.name));
+                files.forEach(function(file) {
+                    dependencies.push(path.join(dep, file));
+                });
+                break;
+
+            case 'file':
+                files.forEach(function(file) {
+                    dependencies.push(file);
+                });
+                break;
+
+            case 'script':
+                files.forEach(function(file) { externalScripts.push(file); });
+                break;
+
+            case 'stylesheet':
+                files.forEach(function(file) { externalStylesheets.push(file); });
+                break;
+
+            default:
+                throw new Error(format('Unknown dependecy type `%s`', dep.type));
+        }
+    }
+
+    return processTemplates({
+        app: app,
+        server: server,
+        mode: gutil.env.mode || 'development',
+        build: build,
+        dest: dest,
+        static: path.join('/<%= app.static.web %>', build),
+        physicalStatic: path.join(dest, '<%= app.static.dir %>', build),
+        dependencies: dependencies,
+        externalStylesheets: externalStylesheets,
+        externalScripts: externalScripts
+    });
+
+    function processTemplates(obj, data) {
+        if (!data) { data = obj; }
+
+        var j,
+            keys,
+            key,
+            oldKey,
+            newObj;
+
+        if (typeof obj === 'string') {
+            return _.template(obj, data);
+        }
+
+        if (obj instanceof Array) {
+            for (j = 0; j < obj.length; j++) {
+                obj[j] = processTemplates(obj[j], data);
+            }
+        } else if (typeof obj === 'object') {
+            keys = Object.keys(obj);
+            if (keys.length) {
+                newObj = {};
+                for (j = 0; j < keys.length; j++) {
+                    oldKey = keys[j];
+                    key = processTemplates(oldKey, data);
+                    newObj[key] = processTemplates(obj[oldKey], data);
+                }
+                obj = newObj;
+            }
+        }
+
+        return obj;
+    }
+})();

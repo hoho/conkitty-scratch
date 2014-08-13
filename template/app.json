@@ -1,10 +1,21 @@
 {
     "title": "Template Project",
     "dest": "target/www",
-    "libs": {
-        "concat.js": "concat.js",
-        "histery": "histery.js",
-        "conkitty-route": "croute.js",
-        "jquery": "jquery.js"
+    "dependencies": [
+        {"type": "script", "files": ["//yastatic.net/jquery/2.1.1/jquery.min.js"]},
+        {"type": "file", "files": ["pages/env.tpl.js"]},
+        {"type": "module", "name": "concat.js", "files": ["concat.js"]},
+        {"type": "module", "name": "histery", "files": ["histery.js"]},
+        {"type": "module", "name": "conkitty-route", "files": ["croute.js"]},
+        {"type": "file", "files": ["blocks/**/*.ctpl", "pages/**/*.ctpl"]},
+        {"type": "file", "files": ["routes/routes.js"]}
+    ],
+    "static": {
+        "dir": "static",
+        "web": "_"
+    },
+    "page": {
+        "src": "pages/page.tpl.html",
+        "dest": "page.html"
     }
 }

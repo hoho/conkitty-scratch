@@ -4,7 +4,8 @@ module.exports = function createProject(dest, name, description, repo, author) {
     var gulp = require('gulp'),
         fs = require('fs'),
         path = require('path'),
-        colors = require('colors');
+        colors = require('colors'),
+        template = require('lodash').template;
 
     if (!dest) {
         console.log(('Error: destination is empty').red);
@@ -18,16 +19,18 @@ module.exports = function createProject(dest, name, description, repo, author) {
         process.exit(1);
     }
 
-    gulp.src([path.join(__dirname, 'template/**/*'), path.join(__dirname, 'template/.gitignore'), '!**/package.json'])
+    gulp.src([path.join(__dirname, 'template/**/*'), path.join(__dirname, 'template/.gitignore'), '!**/package.tpl.json'])
         .pipe(gulp.dest(dest))
         .on('end', function() {
             name = name || path.basename(path.resolve(dest));
 
-            var packageJSON = JSON.parse(fs.readFileSync(path.join(__dirname, 'template/package.json'), {encoding: 'utf8'}));
-            packageJSON.name = name;
-            if (typeof ((packageJSON.description = description)) !== 'string') { delete packageJSON.description; }
-            if (typeof ((packageJSON.repository.url = repo)) !== 'string') { delete packageJSON.repository; }
-            if (typeof ((packageJSON.author = author)) !== 'string') { delete packageJSON.author; }
-            fs.writeFileSync(path.join(dest, 'package.json'), JSON.stringify(packageJSON, undefined, 4));
+            var packageJSON = fs.readFileSync(path.join(__dirname, 'template/package.tpl.json'), {encoding: 'utf8'});
+
+            fs.writeFileSync(path.join(dest, 'package.json'), template(packageJSON, {
+                name: name,
+                description: description,
+                repo: repo,
+                author: author
+            }));
         });
 };
