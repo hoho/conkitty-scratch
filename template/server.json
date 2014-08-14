@@ -1,5 +1,6 @@
 {
     "/": {
+        "expires": -1,
         "file": "<%= app.page.dest %>"
     },
     "/favicon.ico": {

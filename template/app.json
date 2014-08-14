@@ -16,6 +16,7 @@
     },
     "page": {
         "src": "pages/page.tpl.html",
-        "dest": "page.html"
+        "dest": "page.html",
+        "favicon": "pages/favicon.ico"
     }
 }

@@ -108,18 +108,25 @@ gulp.task('uglify', ['app'], function() {
 });
 
 
+gulp.task('favicon', function() {
+    gulp.src(CONFIG.app.page.favicon)
+        .pipe(rename('favicon.ico'))
+        .pipe(gulp.dest(CONFIG.dest));
+});
+
+
 gulp.task('server.json', ['app'], function() {
     fs.writeFileSync(path.join(CONFIG.dest, 'server.json'), JSON.stringify(CONFIG.server, undefined, 4));
 });
 
 
-gulp.task('serve', ['app'], function() {
+gulp.task('serve', ['app', 'favicon'], function() {
     gulp.watch([].concat(CONFIG.dependencies), ['app']);
     devServe(CONFIG.server, CONFIG.dest);
 });
 
 
-gulp.task('default', ['eslint', 'app', 'uglify', 'server.json']);
+gulp.task('default', ['eslint', 'app', 'favicon', 'uglify', 'server.json']);
 
 
 CONFIG = (function() {
