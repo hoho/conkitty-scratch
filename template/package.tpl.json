@@ -8,7 +8,7 @@
         "url": "<%- repo %>"
     },
     <% } %><% if (typeof author === 'string') { %>"author": "<%- author %>",
-    <% } %>"license": "(C) Yandex LLC",
+    <% } %>"license": "(c) Yandex LLC",
     "dependencies": {},
     "devDependencies": {
         "gulp": "~3.8.7",
@@ -29,8 +29,8 @@
         "devserve": "~0.0.1",
         "histery": "~0.7.3",
         "concat.js": "~0.9.5",
-        "conkitty-route": "~0.0.1",
-        "nyanoislands": "~0.0.1",
+        "conkitty-route": "~0.1.0",
+        "nyanoislands": "~0.1.0",
         "jquery": "~2.1.1"
     }
 }

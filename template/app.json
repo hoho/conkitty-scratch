@@ -12,7 +12,8 @@
     ],
     "static": {
         "dir": "static",
-        "web": "_"
+        "web": "_",
+        "watch": ["blocks/**/*.css", "blocks/**/*.js", "pages/**/*.css", "pages/**/*.js"]
     },
     "page": {
         "src": "pages/page.tpl.html",

@@ -134,7 +134,7 @@ if (module === require.main) {
 
 
     gulp.task('serve', ['app', 'favicon'], function() {
-        gulp.watch(CONFIG.dependencies, ['app']);
+        gulp.watch([].concat(CONFIG.dependencies, CONFIG.app.static.watch || []), ['app']);
         devServe(CONFIG.server, CONFIG.dest);
     });
 
