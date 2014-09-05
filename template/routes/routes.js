@@ -3,11 +3,11 @@
 $C.route
     .add('/', {
         title: 'Index',
-        action: 'page',
+        render: 'page',
         frames: {
             '/': {
                 parent: '#page__content',
-                action: 'index'
+                render: 'index'
             },
             '/?text=:text': {
                 id: 'search',
@@ -25,7 +25,7 @@ $C.route
                     }, 1500);
                     return ret;
                 },
-                action: {
+                render: {
                     before: 'search__loading',
                     success: 'search',
                     error: 'search_error'
@@ -35,6 +35,6 @@ $C.route
     })
     .add('/about', {
         title: 'About',
-        action: 'about'
+        render: 'about'
     })
     .run();
