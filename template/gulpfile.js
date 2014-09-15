@@ -82,10 +82,10 @@ if (module === require.main) {
             .pipe(template(CONFIG))
             .pipe(tplFilter.restore())
             .pipe(jsFilter)
-            .pipe(CONFIG.mode === 'production' ? concat('app.js') : gutil.noop())
+            .pipe(CONFIG.mode === 'prod' ? concat('app.js') : gutil.noop())
             .pipe(jsFilter.restore())
             .pipe(cssFilter)
-            .pipe(CONFIG.mode === 'production' ? concat('app.css') : gutil.noop())
+            .pipe(CONFIG.mode === 'prod' ? concat('app.css') : gutil.noop())
             .pipe(prefix('last 1 version', '> 1%'))
             .pipe(cssFilter.restore())
             .pipe(flatten())
@@ -109,7 +109,7 @@ if (module === require.main) {
 
 
     gulp.task('uglify', ['app'], function() {
-        if (CONFIG.mode === 'production') {
+        if (CONFIG.mode === 'prod') {
             gulp.src(CONFIG.dest + '/**/*.js')
                 .pipe(uglify({preserveComments: 'some'}))
                 .pipe(gulp.dest(CONFIG.dest));
