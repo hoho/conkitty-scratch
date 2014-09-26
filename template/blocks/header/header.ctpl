@@ -1,8 +1,8 @@
-block::header
+block::header $current
     &"header.css"
 
-    header.b-header
-        a[href="/"]
-            "Index"
-        a[href="/about"]
-            "About"
+    nya::head
+        nya::head__title title="Template"
+        nya::head__nav current=$current items=([
+            {id: 'index', title: 'Index', href: '/'},
+            {id: 'about', title: 'About', href: '/about'}])

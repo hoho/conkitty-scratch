@@ -27,8 +27,11 @@ if (module === require.main) {
     var flatten = require('gulp-flatten');
     var gutil = require('gulp-util');
     var subsetProcess = require('gulp-subset-process');
+    var asCSSImports = require('gulp-as-css-imports');
     var rename = require('gulp-rename');
+    var dedupe = require('gulp-dedupe');
 
+    var through = require('through');
     var del = require('del');
     var fs = require('fs');
     var _ = require('lodash');
@@ -57,54 +60,167 @@ if (module === require.main) {
             .pipe(eslint({rules: rules, env: {node: true}}))
             .pipe(eslint.format());
 
-        gulp.src(['pages/**/*.js', 'blocks/**/*.js', 'routes/**/*.js'])
+        gulp.src(['pages/**/*.js', '!pages/themes.js', 'blocks/**/*.js', 'routes/**/*.js'])
             .pipe(eslint({rules: rules, env: {browser: true}}))
             .pipe(eslint.format());
     });
 
 
-    gulp.task('app', function() {
-        var cssFilter = filter('**/*.css'),
-            jsFilter = filter('**/*.js'),
-            tplFilter = filter('**/*.tpl.*');
+    gulp.task('app', function(err) {
+        var themes = {};
+        var scripts = {};
+        var inlines = {};
+        var filesStreamCount = 0;
+        var inlinesDeferred = [];
+        var inlinesStreamCount = 0;
+        var retStream = through();
+        var errored;
 
-        var appStylesheets = [],
-            appScripts = [];
+        (CONFIG.app.themes).forEach(function(theme) {
+            if (errored) { return; }
+            themes[theme] = [];
+            scripts[theme] = {};
+            inlines[theme] = {};
 
-        return gulp.src(CONFIG.dependencies)
-            .pipe(subsetProcess('**/*.ctpl', function(src) { return src.pipe(conkitty({
-                common: {file: 'common.js', 'concat.js': false},
-                templates: 'tpl.js',
-                deps: true,
-                libs: {nyanoislands: nyanoislands}
-            })); }))
-            .pipe(tplFilter)
-            .pipe(template(CONFIG))
-            .pipe(tplFilter.restore())
-            .pipe(jsFilter)
-            .pipe(CONFIG.mode === 'prod' ? concat('app.js') : gutil.noop())
-            .pipe(jsFilter.restore())
-            .pipe(cssFilter)
-            .pipe(CONFIG.mode === 'prod' ? concat('app.css') : gutil.noop())
-            .pipe(prefix('last 1 version', '> 1%'))
-            .pipe(cssFilter.restore())
-            .pipe(flatten())
-            .pipe(gulp.dest(CONFIG.physicalStatic))
-            .on('data', function(file) {
-                file = path.basename(file.path);
-                var ext = path.extname(file);
-                if (ext === '.css') { appStylesheets.push(file); }
-                if (ext === '.js') { appScripts.push(file); }
-            })
-            .on('end', function() {
-                CONFIG.appStylesheets = appStylesheets;
-                CONFIG.appScripts = appScripts;
+            Object.keys(CONFIG.dependencies).forEach(function(bundle) {
+                if (errored) { return; }
+                var contents = CONFIG.dependencies[bundle],
+                    themeFile = bundle + '.' + theme + '.css';
 
-                gulp.src(CONFIG.app.page.src)
-                    .pipe(template(CONFIG))
-                    .pipe(rename(CONFIG.app.page.dest))
-                    .pipe(gulp.dest(CONFIG.dest));
+                scripts[theme][bundle] = [];
+                inlines[theme][bundle] = {'.css': [], '.js': []};
+
+                if (contents.files.length) {
+                    filesStreamCount++;
+
+                    var cssFilter = filter('**/*.css');
+                    var jsFilter = filter('**/*.js');
+
+                    gulp.src(contents.files)
+                        .pipe(subsetProcess(contents._templates, function(src) {
+                            return src.pipe(template(_.assign({theme: theme}, CONFIG)));
+                        }, {occurrence: 'keep'}))
+                        .pipe(subsetProcess(['**/*.ctpl', '**/*.css'], function(src) {
+                            return src.pipe(subsetProcess('**/*.ctpl', function(src) {
+                                return src.pipe(conkitty({
+                                    common: {file: '$C_common.js', 'concat.js': false},
+                                    templates: '$C_tpl.js',
+                                    deps: true,
+                                    libs: {nyanoislands: nyanoislands},
+                                    env: {theme: theme}
+                                }));
+                            }));
+                        }))
+                        .pipe(flatten())
+                        .pipe(cssFilter)
+                        .pipe(CONFIG.mode === 'prod' ? concat(themeFile) : asCSSImports(themeFile))
+                        .pipe(prefix('last 1 version', '> 1%'))
+                        .pipe(cssFilter.restore())
+                        .pipe(jsFilter)
+                        .pipe(CONFIG.mode === 'prod' ? concat(bundle + '.js') : gutil.noop())
+                        .pipe(jsFilter.restore())
+                        .on('data', function(file) {
+                            if (errored) { return; }
+                            // Push non-empty files to result stream.
+                            if (file.contents.toString()) {
+                                if (path.resolve(file.path) === path.resolve(themeFile)) {
+                                    themes[theme].push(themeFile);
+                                }
+                                retStream.emit('data', file);
+                                // Remember scripts to include them into html file.
+                                var filename = path.basename(file.path);
+                                var ext = path.extname(filename);
+                                if (ext === '.js') { scripts[theme][bundle].push(filename); }
+                            }
+                        })
+                        .on('end', filesStreamEnd);
+                } else if (contents.inlines.files.length) {
+                    inlinesStreamCount++;
+                    (function(contents, theme, bundle) {
+                        // Defer inlines processing to be able to provide
+                        // `appThemes`, `appScripts` and `appInlines` which are
+                        // dependent from dependencies processing.
+                        inlinesDeferred.push(function() {
+                            if (errored) { return; }
+                            var cssFilter = filter('**/*.css');
+
+                            gulp.src(contents.inlines.files)
+                                .pipe(subsetProcess(contents._templates, function(src) {
+                                    return src.pipe(template(CONFIG));
+                                }, {occurrence: 'keep'}))
+                                .pipe(cssFilter)
+                                .pipe(prefix('last 1 version', '> 1%'))
+                                .pipe(cssFilter.restore())
+                                .on('data', function(file) {
+                                    if (errored) { return; }
+                                    var filename = path.basename(file.path);
+                                    var ext = path.extname(filename);
+                                    if (inlines[theme][bundle][ext]) {
+                                        inlines[theme][bundle][ext].push(file.contents.toString());
+                                    } else {
+                                        appError('Only `.css` and `.js` could be inlined');
+                                    }
+                                })
+                                .on('end', inlinesStreamEnd);
+                        });
+                    })(contents, theme, bundle);
+                }
             });
+        });
+
+        if (!filesStreamCount) { filesStreamEnd(); }
+
+        return retStream
+            .pipe(dedupe())
+            .pipe(gulp.dest(CONFIG.physicalStatic));
+
+
+        function filesStreamEnd() {
+            if (errored) { return; }
+            filesStreamCount--;
+            if (filesStreamCount <= 0) {
+                var s,
+                    i;
+
+                (CONFIG.app.themes).forEach(function(theme, index) {
+                    if (errored) { return; }
+                    if (index === 0) {
+                        s = scripts[theme];
+                        i = inlines[theme];
+                    } else {
+                        if (!_.isEqual(s, scripts[theme]) || !_.isEqual(i, inlines[theme])) {
+                            appError('Scripts and inlines should be the same for each theme');
+                        }
+                    }
+                });
+
+                CONFIG.appThemes = themes;
+                CONFIG.appScripts = s;
+                CONFIG.appInlines = i;
+
+                var cb;
+                while ((cb = inlinesDeferred.shift())) { cb(); }
+                if (!inlinesStreamCount) { inlinesStreamEnd(); }
+            }
+        }
+
+        function inlinesStreamEnd() {
+            if (errored) { return; }
+            inlinesStreamCount--;
+            if (inlinesStreamCount <= 0) {
+                gulp.src(CONFIG.app.singlePage.src)
+                    .pipe(CONFIG.app.singlePage['_.template'] ? template(CONFIG) : gutil.noop())
+                    .pipe(rename(CONFIG.app.singlePage.dest))
+                    .pipe(gulp.dest(CONFIG.dest))
+                    .on('end', function() { retStream.emit('end'); });            }
+        }
+
+        function appError(msg) {
+            if (!errored) {
+                errored = true;
+                err(msg);
+            }
+        }
     });
 
 
@@ -122,20 +238,35 @@ if (module === require.main) {
 
 
     gulp.task('favicon', function() {
-        gulp.src(CONFIG.app.page.favicon)
+        gulp.src(CONFIG.app.singlePage.favicon)
             .pipe(rename('favicon.ico'))
             .pipe(gulp.dest(CONFIG.dest));
     });
 
 
     gulp.task('server.json', ['app'], function() {
-        fs.writeFileSync(path.join(CONFIG.dest, 'server.json'), JSON.stringify(CONFIG.server, undefined, 4));
+        fs.writeFileSync(
+            path.join(CONFIG.dest, 'server.json'),
+            JSON.stringify(CONFIG.app.server, undefined, 4)
+        );
     });
 
 
     gulp.task('serve', ['app', 'favicon'], function() {
-        gulp.watch([].concat(CONFIG.dependencies, CONFIG.app.static.watch || []), ['app']);
-        devServe(CONFIG.server, CONFIG.dest);
+        var deps = [];
+        Object.keys(CONFIG.dependencies).forEach(function(bundle) {
+            deps = deps.concat(
+                CONFIG.dependencies[bundle].files,
+                CONFIG.dependencies[bundle].inlines.files
+            );
+        });
+        deps = deps.concat(CONFIG.app.watch || [], CONFIG.app.singlePage.src);
+        gulp.watch(deps, ['app']);
+        devServe(
+            CONFIG.app.server,
+            CONFIG.dest,
+            CONFIG.app.serverPort && CONFIG.app.serverPort.development || 8080
+        );
     });
 
 
@@ -143,68 +274,120 @@ if (module === require.main) {
 
 
     CONFIG = (function() {
-        var server = JSON.parse(fs.readFileSync('server.json', {encoding: 'utf8'})),
-            app = JSON.parse(fs.readFileSync('app.json', {encoding: 'utf8'})),
+        var app = JSON.parse(fs.readFileSync('app.json', {encoding: 'utf8'})),
             dest = path.resolve(app.dest || 'target/www'),
             build = process.env.MAVEN_VERSION || process.env.BUILD_VERSION || '0',
-            dep,
-            files,
-            i,
-            dependencies = [],
-            externalScripts = [],
-            externalStylesheets = [];
+            dependencies = {};
 
-        for (i = 0; i < app.dependencies.length; i++) {
-            /* eslint no-loop-func: 0 */
-            dep = app.dependencies[i];
-            files = dep.files;
-            if (typeof files === 'string') { files = [files]; }
-            if (!(files instanceof Array)) {
-                throw new Error(format('Incorrect dependecy files (%s)', i));
-            }
+        Object.keys(app.dependencies).forEach(function(bundle) {
+            var templates = [];
 
-            switch (dep.type) {
-                case 'module':
-                    if (typeof dep.name !== 'string' || !dep.name) {
-                        throw new Error(format('Incorrect dependecy name (%s)', i));
-                    }
-                    dep = path.dirname(require.resolve(dep.name));
-                    files.forEach(function(file) {
-                        dependencies.push(path.join(dep, file));
-                    });
-                    break;
+            dependencies[bundle] = {
+                files: [],
+                externalScripts: [],
+                externalStylesheets: [],
+                _templates: templates,
+                inlines: {
+                    files: [],
+                    _templates: templates
+                }
+            };
 
-                case 'file':
-                    files.forEach(function(file) {
-                        dependencies.push(file);
-                    });
-                    break;
-
-                case 'script':
-                    files.forEach(function(file) { externalScripts.push(file); });
-                    break;
-
-                case 'stylesheet':
-                    files.forEach(function(file) { externalStylesheets.push(file); });
-                    break;
-
-                default:
-                    throw new Error(format('Unknown dependecy type `%s`', dep.type));
-            }
-        }
+            processBundleDeclaration(bundle, app.dependencies[bundle], dependencies[bundle]);
+            delete dependencies[bundle].inlines._templates;
+        });
 
         return processTemplates({
             app: app,
-            server: server,
             mode: gutil.env.mode || 'development',
             build: build,
             dest: dest,
             static: path.join('/<%= app.static.web %>', build),
-            physicalStatic: path.join(dest, '<%= app.static.dir %>', build),
-            dependencies: dependencies,
-            externalStylesheets: externalStylesheets,
-            externalScripts: externalScripts
+            physicalStatic: path.join(dest, '<%= app.static.dest %>', build),
+            dependencies: dependencies
         });
+
+
+        function processBundleDeclaration(bundle, bundleContents, ret, noExternals) {
+            bundleContents.forEach(function(dep, index) {
+                var contents = dep.contents,
+                    lodashtpl = dep['_.template'];
+
+                if (!(contents instanceof Array)) {
+                    throw new Error(format('Dependency contents should be array (%s: %s)', bundle, index));
+                }
+
+                switch (dep.type) {
+                    case 'inline':
+                        if (noExternals) {
+                            throw new Error(format('Inline dependency cannot have inline dependencies (%s: %s)', bundle, index));
+                        }
+
+                        if (ret.files.length || ret.externalScripts.length || ret.externalStylesheets.length) {
+                            throw new Error(format('In order not to get a mess during bundle concatenation, use separate bundles for inline, script/stylesheet and file/module dependencies (%s: %s)', bundle, index));
+                        }
+
+                        processBundleDeclaration(bundle, contents, ret.inlines, true);
+                        break;
+
+                    case 'module':
+                        if (typeof dep.name !== 'string' || !dep.name) {
+                            throw new Error(format('Incorrect dependecy module name (%s: %s)', bundle, index));
+                        }
+
+                        if (!noExternals && (ret.inlines.files.length || ret.externalScripts.length || ret.externalStylesheets.length)) {
+                            throw new Error(format('In order not to get a mess during bundle concatenation, use separate bundles for inline, script/stylesheet and file/module dependencies (%s: %s)', bundle, index));
+                        }
+
+                        dep = path.dirname(require.resolve(dep.name));
+                        contents.forEach(function(file) {
+                            dep = path.join(dep, file);
+                            ret.files.push(dep);
+                            if (lodashtpl) { ret._templates.push(path.basename(dep)); }
+                        });
+                        break;
+
+                    case 'file':
+                        if (!noExternals && (ret.inlines.files.length || ret.externalScripts.length || ret.externalStylesheets.length)) {
+                            throw new Error(format('In order not to get a mess during bundle concatenation, use separate bundles for inline, script/stylesheet and file/module dependencies (%s: %s)', bundle, index));
+                        }
+
+                        contents.forEach(function(file) {
+                            ret.files.push(file);
+                            if (lodashtpl) { ret._templates.push(path.basename(file)); }
+                        });
+                        break;
+
+                    case 'script':
+                        if (noExternals) {
+                            throw new Error(format('Inline dependency cannot be external (%s: %s)', bundle, index));
+                        }
+
+                        if (ret.inlines.files.length || ret.files.length) {
+                            throw new Error(format('In order not to get a mess during bundle concatenation, use separate bundles for inline, script/stylesheet and file/module dependencies (%s: %s)', bundle, index));
+                        }
+
+                        contents.forEach(function(file) { ret.externalScripts.push(file); });
+                        break;
+
+                    case 'stylesheet':
+                        if (noExternals) {
+                            throw new Error(format('Inline dependency cannot be external (%s: %s)', bundle, index));
+                        }
+
+                        if (ret.inlines.files.length || ret.files.length) {
+                            throw new Error(format('In order not to get a mess during bundle concatenation, use separate bundles for inline, script/stylesheet and file/module dependencies (%s: %s)', bundle, index));
+                        }
+
+                        contents.forEach(function(file) { ret.externalStylesheets.push(file); });
+                        break;
+
+                    default:
+                        throw new Error(format('Unknown dependecy type `%s`', dep.type));
+                }
+            });
+        }
+
 
         function processTemplates(obj, data) {
             if (!data) { data = obj; }

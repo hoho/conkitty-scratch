@@ -1,14 +1,10 @@
 index
+    &"index.css"
+
     h1
         "Hello world"
 
-    form
-        JS
-            $(this).on('submit', function(e) {
-                e.preventDefault();
-                var text = this.elements[0].value;
-                $C.route.set($C.route.get('search').makeURI({text: text}));
-            });
-        input[type="text"][name="text"][value=""]
-        button[type="submit"]
-            "Search"
+    form.search.input-group[action="/"]
+        nya::input name="text" value=(function() { var params = $C.route.get('search').params(); return (params && params.text) || ''; })
+        span.input-group-btn
+            nya::button title="Do Magic" type="submit" theme="action"

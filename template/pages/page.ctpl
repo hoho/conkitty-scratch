@@ -1,6 +1,6 @@
 page
-    block::header
+    block::header current="index"
 
-    div#page__content
+    div#page__content.container
 
     block::footer

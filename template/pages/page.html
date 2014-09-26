@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= app.title %></title>
+<% _.forEach(Object.keys(dependencies), function(bundle) {
+    _.forEach(appScripts[bundle], function(file) { %><script src="<%- static %>/<%- file %>"></script>
+<% });
+    _.forEach(appInlines[bundle]['.css'], function(file) { %><style><%= file %></style>
+<% });
+    _.forEach(appInlines[bundle]['.js'], function(file) { %><script><%= file %></script>
+<% });
+    _.forEach(dependencies[bundle].externalStylesheets, function(file) { %><link rel="stylesheet" href="<%- file %>">
+<% });
+    _.forEach(dependencies[bundle].externalScripts, function(file) { %><script src="<%- file %>"></script>
+<% });
+}); %><body onload="$CA()"></body>
+</html>

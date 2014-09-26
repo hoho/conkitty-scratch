@@ -1,9 +1,10 @@
 about
-    block::header
+    block::header current="about"
 
-    h1
-        "About"
-    p
-        "This is good project."
+    div.container
+        h1
+            "About"
+        p
+            "This is good project."
 
     block::footer

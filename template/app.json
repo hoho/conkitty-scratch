@@ -1,23 +1,70 @@
 {
     "title": "Template Project",
     "dest": "target/www",
-    "dependencies": [
-        {"type": "script", "files": ["//yastatic.net/jquery/2.1.1/jquery.min.js"]},
-        {"type": "file", "files": ["pages/env.tpl.js"]},
-        {"type": "module", "name": "concat.js", "files": ["concat.js"]},
-        {"type": "module", "name": "histery", "files": ["histery.js"]},
-        {"type": "module", "name": "conkitty-route", "files": ["croute.js"]},
-        {"type": "file", "files": ["blocks/**/*.ctpl", "pages/**/*.ctpl"]},
-        {"type": "file", "files": ["routes/routes.js"]}
-    ],
     "static": {
-        "dir": "static",
-        "web": "_",
-        "watch": ["blocks/**/*.css", "blocks/**/*.js", "pages/**/*.css", "pages/**/*.js"]
+        "dest": "static",
+        "web": "_"
     },
-    "page": {
-        "src": "pages/page.tpl.html",
+    "singlePage": {
+        "src": "pages/page.html",
+        "_.template": true,
         "dest": "page.html",
         "favicon": "pages/favicon.ico"
+    },
+    "themes": ["light", "dark"],
+    "dependencies": {
+        "helpers": [
+            {"type": "module", "name": "conkitty-app", "contents": ["capp.js"]}
+        ],
+        "theme-load": [
+            {"type": "inline", "contents": [
+                {"type": "file", "contents": ["pages/themes.js"], "_.template": true}
+            ]}
+        ],
+        "external": [
+            {"type": "script", "contents": ["//yastatic.net/jquery/2.1.1/jquery.min.js"]}
+        ],
+        "app": [
+            {"type": "file",   "contents": ["pages/env.js"], "_.template": true},
+            {"type": "module", "name":      "concat.js", "contents": ["concat.js"]},
+            {"type": "module", "name":      "histery", "contents": ["histery.js"]},
+            {"type": "module", "name":      "conkitty-route", "contents": ["croute.js"]},
+            {"type": "file",   "contents": ["blocks/**/*.ctpl", "pages/**/*.ctpl"]},
+            {"type": "file",   "contents": ["routes/routes.js"]}
+        ]
+    },
+    "watch": [
+        "blocks/**/*.css",
+        "blocks/**/*.js",
+        "pages/**/*.css",
+        "pages/**/*.js"
+    ],
+    "serverPort": {
+        "development": 8080
+    },
+    "server": {
+        "/": {
+            "expires": -1,
+            "file": "<%= app.singlePage.dest %>"
+        },
+        "/favicon.ico": {
+            "file": "favicon.ico"
+        },
+        "/<%= app.static.web %>/": {
+            "dir": "<%= app.static.dest %>"
+        },
+        "/api/": {
+            "proxy": {
+                "development": {
+                    "url": "https://api:8081"
+                },
+                "testing": {
+                    "url": "https://api:8081"
+                },
+                "production": {
+                    "url": "https://api:8081"
+                }
+            }
+        }
     }
 }

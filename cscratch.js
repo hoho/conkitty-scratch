@@ -19,12 +19,12 @@ module.exports = function createProject(dest, name, description, repo, author) {
         process.exit(1);
     }
 
-    gulp.src([path.join(__dirname, 'template/**/*'), path.join(__dirname, 'template/.gitignore'), '!**/package.tpl.json'])
+    gulp.src([path.join(__dirname, 'template/**/*'), path.join(__dirname, 'template/.gitignore'), '!**/package.json.tpl'])
         .pipe(gulp.dest(dest))
         .on('end', function() {
             name = name || path.basename(path.resolve(dest));
 
-            var packageJSON = fs.readFileSync(path.join(__dirname, 'template/package.tpl.json'), {encoding: 'utf8'});
+            var packageJSON = fs.readFileSync(path.join(__dirname, 'template/package.json.tpl'), {encoding: 'utf8'});
 
             fs.writeFileSync(path.join(dest, 'package.json'), template(packageJSON, {
                 name: name,

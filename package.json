@@ -19,7 +19,7 @@
         "url": "https://github.com/hoho/conkitty-scratch/issues"
     },
     "dependencies": {
-        "gulp": "~3.8.7",
+        "gulp": "~3.8.8",
         "commander": "~2.3.0",
         "colors": "~0.6.2",
         "lodash": "~2.4.1"
