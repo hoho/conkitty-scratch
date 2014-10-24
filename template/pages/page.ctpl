@@ -1,6 +1,8 @@
 page
+    &"page.less"
+
     block::header current="index"
 
-    div#page__content.container
+    div.page__content.container
 
     block::footer

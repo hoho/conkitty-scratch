@@ -2,7 +2,9 @@ search $data $params
     ul
         EACH $item $data
             li
+                "'"
                 ($params.text)
+                "' — "
                 $item
 
 

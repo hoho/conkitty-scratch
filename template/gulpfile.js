@@ -30,6 +30,8 @@ if (module === require.main) {
     var asCSSImports = require('gulp-as-css-imports');
     var rename = require('gulp-rename');
     var dedupe = require('gulp-dedupe');
+    var less = require('gulp-less');
+    var inject = require('gulp-inject-string');
 
     var through = require('through');
     var del = require('del');
@@ -112,26 +114,30 @@ if (module === require.main) {
                             }));
                         }))
                         .pipe(flatten())
+                        .pipe(subsetProcess('**/*.less', function(src) {
+                            return src
+                                .pipe(inject.prepend('@import "' + path.relative('.', nyanoislands.LESS[theme]) + '";\n'))
+                                .pipe(rename(function(path) { path.basename += '.' + theme; }))
+                                .pipe(less());
+                        }, {occurrence: 'keep'}))
                         .pipe(cssFilter)
-                        .pipe(CONFIG.mode === 'prod' ? concat(themeFile) : asCSSImports(themeFile))
                         .pipe(prefix('last 1 version', '> 1%'))
+                        .pipe(CONFIG.mode === 'prod' ? concat(themeFile) : asCSSImports(themeFile))
                         .pipe(cssFilter.restore())
                         .pipe(jsFilter)
                         .pipe(CONFIG.mode === 'prod' ? concat(bundle + '.js') : gutil.noop())
                         .pipe(jsFilter.restore())
                         .on('data', function(file) {
                             if (errored) { return; }
-                            // Push non-empty files to result stream.
-                            if (file.contents.toString()) {
-                                if (path.resolve(file.path) === path.resolve(themeFile)) {
-                                    themes[theme].push(themeFile);
-                                }
-                                retStream.emit('data', file);
-                                // Remember scripts to include them into html file.
-                                var filename = path.basename(file.path);
-                                var ext = path.extname(filename);
-                                if (ext === '.js') { scripts[theme][bundle].push(filename); }
+                            // Push files to result stream.
+                            if (path.resolve(file.path) === path.resolve(themeFile)) {
+                                themes[theme].push(themeFile);
                             }
+                            retStream.emit('data', file);
+                            // Remember scripts to include them into html file.
+                            var filename = path.basename(file.path);
+                            var ext = path.extname(filename);
+                            if (ext === '.js') { scripts[theme][bundle].push(filename); }
                         })
                         .on('end', filesStreamEnd);
                 } else if (contents.inlines.files.length) {
@@ -147,6 +153,12 @@ if (module === require.main) {
                             gulp.src(contents.inlines.files)
                                 .pipe(subsetProcess(contents._templates, function(src) {
                                     return src.pipe(template(CONFIG));
+                                }, {occurrence: 'keep'}))
+                                .pipe(subsetProcess('**/*.less', function(src) {
+                                    return src
+                                        .pipe(inject.prepend('@import "' + path.relative('.', nyanoislands.LESS[theme]) + '";\n'))
+                                        .pipe(rename(function(path) { path.basename += '.' + theme; }))
+                                        .pipe(less());
                                 }, {occurrence: 'keep'}))
                                 .pipe(cssFilter)
                                 .pipe(prefix('last 1 version', '> 1%'))
@@ -171,7 +183,7 @@ if (module === require.main) {
         if (!filesStreamCount) { filesStreamEnd(); }
 
         return retStream
-            .pipe(dedupe())
+            .pipe(dedupe({same: false})) // Enable the `same` setting when order plugin is fixed.
             .pipe(gulp.dest(CONFIG.physicalStatic));
 
 

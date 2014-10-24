@@ -1,38 +1,39 @@
-/* global $C */
+/* global $CR */
 /* global $CA */
-/* global $ */
-(function($C, $CA) {
+/* global Promise */
+(function($CR, $CA) {
     'use strict';
 
-    $C.route
+    $CR
         .add('/', {
             title: 'Index',
             render: 'page',
             frames: {
                 '/': {
-                    parent: '#page__content',
+                    parent: '.page__content',
                     render: 'index'
                 },
                 '/?text=:text': {
                     id: 'search',
                     title: 'Search',
-                    parent: '#page__content',
+                    parent: '.page__content',
+                    keep: false,
                     data: function() {
-                        var ret = new $.Deferred();
-                        setTimeout(function() {
-                            var data = [],
-                                i;
-                            for (i = 0; i < 10; i++) {
-                                data.push(Math.random());
-                            }
-                            ret.resolve(data);
-                        }, 1500);
-                        return ret;
+                        return new Promise(function(resolve) {
+                            setTimeout(function() {
+                                var data = [],
+                                    i;
+                                for (i = 0; i < 10; i++) {
+                                    data.push(Math.random());
+                                }
+                                resolve(data);
+                            }, 1000);
+                        });
                     },
                     render: {
-                        before: function() { return this.active(true) ? undefined : 'search__loading'},
+                        '-before': 'search__loading',
                         success: 'search',
-                        error: 'search_error'
+                        error: 'search__error'
                     }
                 }
             }
@@ -40,9 +41,12 @@
         .add('/about', {
             title: 'About',
             render: 'about'
+        })
+        .on('busy idle', function(e) {
+            document.body.style.opacity = e === 'busy' ? 0.7 : 1;
         });
 
     $CA.ready(function() {
-        $C.route.run();
+        $CR.run();
     });
-})($C, $CA);
+})($CR, $CA);
