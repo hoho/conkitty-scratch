@@ -6,6 +6,7 @@
     "directories": {
         "bin": "bin"
     },
+    "preferGlobal": true,
     "bin": {
         "cscratch": "bin/cscratch"
     },

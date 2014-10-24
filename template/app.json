@@ -35,8 +35,10 @@
     },
     "watch": [
         "blocks/**/*.css",
+        "blocks/**/*.less",
         "blocks/**/*.js",
         "pages/**/*.css",
+        "pages/**/*.less",
         "pages/**/*.js"
     ],
     "serverPort": {
@@ -56,13 +58,13 @@
         "/api/": {
             "proxy": {
                 "development": {
-                    "url": "https://api:8081"
+                    "url": "https://api:8081/"
                 },
                 "testing": {
-                    "url": "https://api:8081"
+                    "url": "https://api:8081/"
                 },
                 "production": {
-                    "url": "https://api:8081"
+                    "url": "https://api:8081/"
                 }
             }
         }
