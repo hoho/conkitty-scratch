@@ -4,8 +4,11 @@ module.exports = function createProject(dest, name, description, repo, author) {
     var gulp = require('gulp'),
         fs = require('fs'),
         path = require('path'),
-        colors = require('colors'),
         template = require('lodash').template;
+
+    require('colors');
+
+    /* eslint no-process-exit:0 */
 
     if (!dest) {
         console.log(('Error: destination is empty').red);
