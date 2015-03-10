@@ -55,7 +55,8 @@ if (module === require.main) {
             'quotes': [2, 'single'],
             'no-shadow-restricted-names': 0,
             'no-underscore-dangle': 0,
-            'no-use-before-define': [2, 'nofunc']
+            'no-use-before-define': [2, 'nofunc'],
+            'no-shadow': 0
         };
 
         gulp.src(['gulpfile.js'])
@@ -224,7 +225,8 @@ if (module === require.main) {
                     .pipe(CONFIG.app.singlePage['_.template'] ? template(CONFIG) : gutil.noop())
                     .pipe(rename(CONFIG.app.singlePage.dest))
                     .pipe(gulp.dest(CONFIG.dest))
-                    .on('end', function() { retStream.emit('end'); });            }
+                    .on('end', function() { retStream.emit('end'); });
+            }
         }
 
         function appError(msg) {
@@ -237,6 +239,7 @@ if (module === require.main) {
 
 
     gulp.task('uglify', ['app'], function() {
+        console.log(CONFIG.mode);
         if (CONFIG.mode === 'prod') {
             gulp.src(CONFIG.dest + '/**/*.js')
                 .pipe(uglify({preserveComments: 'some'}))
@@ -411,7 +414,7 @@ if (module === require.main) {
                 newObj;
 
             if (typeof obj === 'string') {
-                return _.template(obj, data);
+                return _.template(obj)(data);
             }
 
             if (obj instanceof Array) {

@@ -5,6 +5,6 @@ about
         h1
             "About"
         p
-            "This is good project."
+            "This is a good project."
 
     block::footer
