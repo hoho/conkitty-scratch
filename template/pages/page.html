@@ -16,5 +16,5 @@
 <% });
     _.forEach(dependencies[bundle].externalScripts, function(file) { %><script src="<%- file %>"></script>
 <% });
-}); %><body onload="$CA()"></body>
+}); %><body onload="$CA()"><noscript>One does not simply work without JavaScript.</noscript></body>
 </html>
