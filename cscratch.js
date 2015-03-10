@@ -16,7 +16,6 @@ module.exports = function createProject(callback) {
         .option('-a, --author [author]', 'Author name')
         .parse(process.argv);
 
-
     if (program.args.length !== 1) {
         program.help();
     }
@@ -48,20 +47,25 @@ module.exports = function createProject(callback) {
         process.exit(1);
     }
 
-    gulp.src([path.join(__dirname, 'template/**/*'), path.join(__dirname, 'template/.gitignore'), '!**/package.json.tpl'])
+    gulp.src([path.join(__dirname, 'template/**/*'),
+              path.join(__dirname, 'template/.gitignore'),
+              '!**/package.json.tpl'])
         .pipe(gulp.dest(dest))
         .on('end', function() {
-            name = name || path.basename(path.resolve(dest));
+            // Workaround for https://github.com/tj/commander.js/issues/284.
+            name = (typeof name === 'function' ? undefined : name) || path.basename(path.resolve(dest));
 
-            var packageJSON = fs.readFileSync(path.join(__dirname, 'template/package.json.tpl'), {encoding: 'utf8'});
+            var packageJSONTpl = fs.readFileSync(path.join(__dirname, 'template/package.json.tpl'), {encoding: 'utf8'});
 
-            fs.writeFileSync(path.join(dest, 'package.json'), template(packageJSON, {
+            fs.writeFileSync(path.join(dest, 'package.json'), template(packageJSONTpl)({
                 name: name,
                 description: description,
                 repo: repo,
                 author: author
             }));
 
-            callback && callback(dest);
+            if (callback) {
+                callback(dest);
+            }
         });
 };

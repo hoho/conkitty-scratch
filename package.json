@@ -1,6 +1,6 @@
 {
     "name": "conkitty-scratch",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Sample project",
     "main": "cscratch.js",
     "directories": {
@@ -20,12 +20,12 @@
         "url": "https://github.com/hoho/conkitty-scratch/issues"
     },
     "dependencies": {
-        "gulp": "~3.8.10",
-        "commander": "~2.2.0",
+        "gulp": "~3.8.11",
+        "commander": "~2.7.0",
         "colors": "~1.0.3",
-        "lodash": "~2.4.1"
+        "lodash": "~3.5.0"
     },
     "devDependencies": {
-        "gulp-eslint": "~0.2.0-beta2"
+        "gulp-eslint": "~0.6.0"
     }
 }
