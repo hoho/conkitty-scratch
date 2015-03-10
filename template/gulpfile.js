@@ -15,6 +15,7 @@ if (module === require.main) {
 } else {
     // When you do `gulp` in command line.
     var gulp = require('gulp');
+    var plumber = require('gulp-plumber');
 
     var eslint = require('gulp-eslint');
     var uglify = require('gulp-uglify');
@@ -100,6 +101,7 @@ if (module === require.main) {
                     var jsFilter = filter('**/*.js');
 
                     gulp.src(contents.files)
+                        .pipe(plumber({errorHandler: function(err) { appError(err); }}))
                         .pipe(subsetProcess(contents._templates, function(src) {
                             return src.pipe(template(_.assign({theme: theme}, CONFIG)));
                         }, {occurrence: 'keep'}))
@@ -152,6 +154,7 @@ if (module === require.main) {
                             var cssFilter = filter('**/*.css');
 
                             gulp.src(contents.inlines.files)
+                                .pipe(plumber({errorHandler: function(err) { appError(err); }}))
                                 .pipe(subsetProcess(contents._templates, function(src) {
                                     return src.pipe(template(CONFIG));
                                 }, {occurrence: 'keep'}))
@@ -239,7 +242,6 @@ if (module === require.main) {
 
 
     gulp.task('uglify', ['app'], function() {
-        console.log(CONFIG.mode);
         if (CONFIG.mode === 'prod') {
             gulp.src(CONFIG.dest + '/**/*.js')
                 .pipe(uglify({preserveComments: 'some'}))

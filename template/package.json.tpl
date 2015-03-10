@@ -12,6 +12,7 @@
     "dependencies": {},
     "devDependencies": {
         "gulp": "~3.8.11",
+        "gulp-plumber": "~1.0.0",
         "gulp-eslint": "~0.6.0",
         "gulp-rename": "~1.2.0",
         "gulp-uglify": "~1.1.0",
