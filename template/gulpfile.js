@@ -358,9 +358,9 @@ if (module === require.main) {
 
                         dep = path.dirname(require.resolve(dep.name));
                         contents.forEach(function(file) {
-                            dep = path.join(dep, file);
-                            ret.files.push(dep);
-                            if (lodashtpl) { ret._templates.push(path.basename(dep)); }
+                            file = path.join(dep, file);
+                            ret.files.push(file);
+                            if (lodashtpl) { ret._templates.push(path.basename(file)); }
                         });
                         break;
 

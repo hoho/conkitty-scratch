@@ -25,7 +25,7 @@
         "gulp-flatten": "~0.0.4",
         "gulp-util": "~3.0.4",
         "gulp-subset-process": "~0.1.0",
-        "gulp-as-css-imports": "~0.0.1",
+        "gulp-as-css-imports": "~0.0.2",
         "gulp-dedupe": "~0.0.2",
         "gulp-less": "~3.0.1",
         "gulp-inject-string": "~0.0.2",
