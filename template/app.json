@@ -8,7 +8,7 @@
     "singlePage": {
         "src": "pages/page.html",
         "_.template": true,
-        "dest": "page.html",
+        "dest": "index.html",
         "favicon": "pages/favicon.ico"
     },
     "themes": ["light", "dark"],
