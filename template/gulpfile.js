@@ -133,7 +133,7 @@ if (module === require.main) {
                         .on('data', function(file) {
                             if (errored) { return; }
                             // Push files to result stream.
-                            if (path.resolve(file.path) === path.resolve(themeFile)) {
+                            if (path.resolve(file.relative) === path.resolve(themeFile)) {
                                 themes[theme].push(themeFile);
                             }
                             retStream.emit('data', file);
